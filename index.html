@@ -274,7 +274,8 @@
 
                         <div class="p-10">
                             <!-- RFQフォーム -->
-                            <form id="rfq-form" class="space-y-8" action="https://formsubmit.co/ba52e14cbdb5e64bfd60081d8e8d2408" method="POST">                                <input type="hidden" name="_subject" value="【見積依頼】新しい問い合わせがありました">
+                            <form id="rfq-form" class="space-y-8" action="https://formsubmit.co/ba52e14cbdb5e64bfd60081d8e8d2408" method="POST">
+                                <input type="hidden" name="_subject" value="【見積依頼】新しい問い合わせがありました">
                                 <input type="hidden" name="_autoresponse" value="この度は、見積依頼をいただき誠にありがとうございます。原則24時間以内に在庫状況・価格・納期をご返信いたします。お急ぎの場合は、050-6863-4302までご連絡ください。">
 
                                 <div class="grid md:grid-cols-2 gap-8">
@@ -491,6 +492,58 @@
             window.scrollTo(0, 0);
         }
     }
-</script>
+
+    // ================================
+    // RFQフォーム送信を Workers に差し替え（FormSubmitは残す）
+    // ================================
+    document.addEventListener("DOMContentLoaded", () => {
+        const form = document.getElementById("rfq-form");
+        if (!form) return;
+
+        const submitBtn = document.getElementById("submit-btn");
+        const errorMsg = document.getElementById("error-msg");
+        const successMsg = document.getElementById("success-msg");
+
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+
+            // UI初期化
+            errorMsg?.classList.add("hidden");
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.classList.add("opacity-70", "cursor-not-allowed");
+            }
+
+            try {
+                const fd = new FormData(form);
+                const data = {};
+                fd.forEach((v, k) => { data[k] = v; });
+
+                const res = await fetch("https://everlink-rfq.hideakitamura714.workers.dev/", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ form_data: data })
+                });
+
+                if (res.ok) {
+                    form.classList.add("hidden");
+                    successMsg?.classList.remove("hidden");
+                } else {
+                    errorMsg?.classList.remove("hidden");
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.classList.remove("opacity-70", "cursor-not-allowed");
+                    }
+                }
+            } catch (err) {
+                errorMsg?.classList.remove("hidden");
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.classList.remove("opacity-70", "cursor-not-allowed");
+                }
+            }
+        });
+    });
+    </script>
 </body>
 </html>
